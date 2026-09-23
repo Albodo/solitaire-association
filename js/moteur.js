@@ -140,16 +140,31 @@
 
   /* ---------- Règles ---------- */
 
-  /** Une suite déplaçable : même catégorie, visibles, carte-catégorie seulement à la base. */
+  /**
+   * Une suite déplaçable : cartes visibles de la même catégorie. La
+   * carte-catégorie, si présente, est forcément PAR-DESSUS (dernière).
+   */
   function suiteValide(cartes) {
     if (!cartes.length) return false;
     const cat = cartes[0].cat;
     for (let i = 0; i < cartes.length; i++) {
       const k = cartes[i];
       if (!k.visible || k.cat !== cat) return false;
-      if (i > 0 && k.type !== 'mot') return false;
+      if (k.type === 'cat' && i !== cartes.length - 1) return false;
     }
     return true;
+  }
+
+  /** Nombre de mots de la même catégorie empilés directement sous la carte idx. */
+  function motsSous(col, idx) {
+    const cat = col[idx].cat;
+    let n = 0;
+    for (let j = idx - 1; j >= 0; j--) {
+      const k = col[j];
+      if (!k.visible || k.type !== 'mot' || k.cat !== cat) break;
+      n++;
+    }
+    return n;
   }
 
   /** Cartes prises depuis une source, ou null si la prise est illégale. */
@@ -173,8 +188,9 @@
     if (dest.zone === 'fond') {
       const f = etat.fondations[dest.i];
       if (!f) return false;
-      if (f.cat === null) return tete.type === 'cat';
-      return tete.type === 'mot' && tete.cat === f.cat;
+      const aCategorie = cartes[cartes.length - 1].type === 'cat';
+      if (f.cat === null) return aCategorie;                  // ouvrir : la suite doit contenir sa catégorie
+      return !aCategorie && tete.cat === f.cat;                // compléter : des mots seulement
     }
     if (dest.zone === 'col') {
       if (source.zone === 'col' && source.i === dest.i) return false;
@@ -182,7 +198,8 @@
       if (!col) return false;
       if (!col.length) return true;
       const haut = col[col.length - 1];
-      return haut.visible && tete.type === 'mot' && haut.cat === tete.cat;
+      // Rien ne se pose sur une carte-catégorie; mots et catégorie vont sur un mot de même catégorie.
+      return haut.visible && haut.type === 'mot' && haut.cat === tete.cat;
     }
     return false;
   }
@@ -300,6 +317,8 @@
     }
     // Vers une colonne
     const destVide = etat.colonnes[coup.vers.i].length === 0;
+    const ouvrirPossible = etat.fondations.some(x => x.cat === null);
+    if (!destVide && cartes[cartes.length - 1].type === 'cat' && !ouvrirPossible) return 45 + (reveleCachee ? 10 : 0);
     if (coup.de.zone === 'col') {
       if (sousCarte && sousCarte.visible && sousCarte.cat === tete.cat) return -Infinity; // scinder une suite : inutile
       if (destVide && videColonne) return -Infinity;                                       // déplacer une colonne entière vers une vide
@@ -390,7 +409,7 @@
 
   return {
     DIFFICULTES, mulberry32, hacher, normaliser, construireCatalogue, choisirCategories,
-    distribuer, cloner, suiteValide, prendre, peutPoser, coupLegal, appliquer,
+    distribuer, cloner, suiteValide, motsSous, prendre, peutPoser, coupLegal, appliquer,
     estGagnee, estPerdue, estTerminee, coupsRestants, coupsLegaux, noter,
     meilleurCoup, simuler, resoudre, nouvellePartie, nombreEtoiles,
   };

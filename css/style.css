@@ -185,6 +185,16 @@ h1 span { color: var(--bleu-clair); }
 }
 .case.cible { border-style: solid; border-color: var(--accent); background: rgba(224, 165, 38, .12); }
 
+/* Glisser-déposer */
+.fantome { position: fixed; z-index: 200; pointer-events: none; width: var(--l-carte); will-change: transform; }
+.fantome .carte { box-shadow: 0 8px 22px rgba(0, 0, 0, .35); transform: rotate(2deg); }
+.carte.traine { opacity: .25; }
+.cible-possible.case, .cible-possible > .case { border-color: var(--accent); }
+.cible-possible > .carte:last-of-type { box-shadow: 0 0 0 2px rgba(224, 165, 38, .6), var(--ombre); }
+.cible.case, .cible > .case { border-style: solid; border-color: var(--accent); background: rgba(224, 165, 38, .18); }
+.cible > .carte:last-of-type { box-shadow: 0 0 0 3px var(--accent), var(--ombre); }
+.case.fond.cible .carte { box-shadow: 0 0 0 3px var(--accent); }
+
 .colonne { position: relative; width: var(--l-carte); min-height: var(--h-carte); }
 .colonne > .case { position: absolute; top: 0; left: 0; }
 
@@ -209,7 +219,7 @@ h1 span { color: var(--bleu-clair); }
   user-select: none;
   -webkit-user-select: none;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: none;
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .carte .txt {
@@ -230,10 +240,11 @@ h1 span { color: var(--bleu-clair); }
 .carte.cat::after {
   content: attr(data-taille);
   position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
-  min-width: 20px; padding: 1px 6px;
+  min-width: 20px; padding: 1px 7px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, .22);
-  font-size: 11px;
+  background: rgba(255, 255, 255, .25);
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap;
 }
 
 .carte.cachee {

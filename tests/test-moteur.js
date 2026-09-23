@@ -14,9 +14,19 @@ function test(nom, fn) { fn(); ok++; console.log('✓', nom); }
 
 test('suiteValide', () => {
   const v = (type, cat) => ({ type, cat, visible: true, texte: 'x' });
-  assert(M.suiteValide([v('cat', 0), v('mot', 0), v('mot', 0)]));
-  assert(!M.suiteValide([v('mot', 0), v('cat', 0)]));
+  assert(M.suiteValide([v('mot', 0), v('mot', 0), v('cat', 0)]));   // catégorie par-dessus
+  assert(!M.suiteValide([v('cat', 0), v('mot', 0)]));               // catégorie dessous : interdit
   assert(!M.suiteValide([v('mot', 0), v('mot', 1)]));
+});
+
+test('rien ne se pose sur une carte-catégorie', () => {
+  const v = (type, cat) => ({ type, cat, visible: true, texte: 'x' });
+  const e = { colonnes: [[v('cat', 0)], [v('mot', 0)]], fondations: [{ cat: null, n: 0 }, { cat: 0, n: 0 }], defausse: [], categories: [{ taille: 2 }] };
+  assert(!M.peutPoser(e, [v('mot', 0)], { zone: 'def' }, { zone: 'col', i: 0 }));
+  assert(M.peutPoser(e, [v('cat', 0)], { zone: 'col', i: 0 }, { zone: 'col', i: 1 }));
+  assert(M.peutPoser(e, [v('mot', 0), v('cat', 0)], { zone: 'col', i: 1 }, { zone: 'fond', i: 0 }));
+  assert(!M.peutPoser(e, [v('mot', 0), v('cat', 0)], { zone: 'col', i: 1 }, { zone: 'fond', i: 1 }));
+  assert.strictEqual(M.motsSous([v('mot', 0), v('mot', 0), v('cat', 0)], 2), 2);
 });
 
 test('parties déterministes avec une graine', () => {

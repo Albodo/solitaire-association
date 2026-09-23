@@ -1,7 +1,7 @@
 /*
  * Interface — Solitaire Association
- * Rendu du plateau, interactions tactiles (toucher pour choisir, toucher
- * pour poser), sauvegarde locale et statistiques.
+ * Rendu du plateau, glisser-déposer (et toucher-toucher en secours),
+ * sauvegarde locale et statistiques.
  */
 (function () {
   'use strict';
@@ -138,7 +138,7 @@
     selection = null;
     sauvegarder();
     montrer('ecran-jeu');
-    $('#aide').textContent = 'Touche une carte, puis sa destination.';
+    $('#aide').textContent = 'Glisse une carte vers sa destination. Touche deux fois pour l\'envoyer toute seule.';
   }
 
   function sauvegarder() {
@@ -186,10 +186,11 @@
 
   /* ---------- Rendu ---------- */
 
-  function htmlCarte(k, extra) {
+  /** n = nombre de mots déjà regroupés sous une carte-catégorie (affiché « n/total »). */
+  function htmlCarte(k, extra, n) {
     if (!k.visible) return `<div class="carte cachee${extra || ''}" data-id="${k.id}"></div>`;
     const cat = k.type === 'cat';
-    const taille = cat ? ` data-taille="${etat.categories[k.cat].taille}"` : '';
+    const taille = cat ? ` data-taille="${n || 0}/${etat.categories[k.cat].taille}"` : '';
     return `<div class="carte${cat ? ' cat' : ''}${extra || ''}" data-id="${k.id}"${taille}>` +
       `${texteCarte(k.texte)}</div>`;
   }
@@ -227,7 +228,8 @@
       let y = 0;
       const cartes = col.map((k, idx) => {
         const dessus = idx === col.length - 1;
-        const html = htmlCarte(k, (dessus ? ' dessus' : '') + (estChoisie('col', i, idx) ? ' choisie' : ''))
+        const n = k.type === 'cat' ? M.motsSous(col, idx) : 0;
+        const html = htmlCarte(k, (dessus ? ' dessus' : '') + (estChoisie('col', i, idx) ? ' choisie' : ''), n)
           .replace('class="carte', `data-idx="${idx}" style="top:${y}px;z-index:${idx + 1}" class="carte`);
         y += k.visible ? dispo.dv : dispo.dc;
         return html;
@@ -290,6 +292,11 @@
 
   /** Envoie la sélection au meilleur endroit légal. */
   function autoDeplacer(de) {
+    // Une carte-catégorie posée sur ses mots emporte tout le groupe.
+    if (de.zone === 'col') {
+      const col = etat.colonnes[de.i];
+      if (col[de.idx] && col[de.idx].type === 'cat') de = { ...de, idx: de.idx - M.motsSous(col, de.idx) };
+    }
     const cartes = M.prendre(etat, de);
     if (!cartes) return false;
     const candidats = [];
@@ -346,6 +353,146 @@
 
     if (selectionnable(zone, i, idx)) { selection = ici; rendre(); }
     else if (elCarte) refuser(elCarte);
+  }
+
+  /* ---------- Glisser-déposer ---------- */
+
+  const SEUIL_GLISSE = 8;   // px avant de considérer que c'est un glissement
+  let geste = null;         // { id, x0, y0, source, cartesEl, fantome, cibles, glisse }
+
+  /** Source déplaçable sous le doigt, ou null. */
+  function sourceSous(cible) {
+    const elCarte = cible.closest('.carte');
+    const elZone = cible.closest('[data-zone]');
+    if (!elCarte || !elZone || elCarte.classList.contains('cachee')) return null;
+    if (elZone.dataset.zone === 'def') return etat.defausse.length ? { zone: 'def' } : null;
+    if (elZone.dataset.zone === 'col' && elCarte.dataset.idx != null) {
+      const src = { zone: 'col', i: Number(elZone.dataset.i), idx: Number(elCarte.dataset.idx) };
+      // Prendre une carte-catégorie emporte les mots regroupés sous elle.
+      const col = etat.colonnes[src.i];
+      if (col[src.idx] && col[src.idx].type === 'cat') src.idx -= M.motsSous(col, src.idx);
+      return M.prendre(etat, src) ? src : null;
+    }
+    return null;
+  }
+
+  function elementsSource(src) {
+    if (src.zone === 'def') return [$('#defausse .carte')];
+    return [...document.querySelectorAll(`#tableau .colonne[data-i="${src.i}"] .carte`)]
+      .filter(el => Number(el.dataset.idx) >= src.idx);
+  }
+
+  /** Destinations légales pour la source, avec leur élément à l'écran. */
+  function ciblesLegales(src) {
+    const liste = [];
+    etat.fondations.forEach((_, i) => {
+      const vers = { zone: 'fond', i };
+      if (M.coupLegal(etat, { type: 'deplacer', de: src, vers })) liste.push({ vers, el: $(`#fondations [data-i="${i}"]`) });
+    });
+    etat.colonnes.forEach((_, i) => {
+      const vers = { zone: 'col', i };
+      if (M.coupLegal(etat, { type: 'deplacer', de: src, vers })) liste.push({ vers, el: $(`#tableau .colonne[data-i="${i}"]`) });
+    });
+    return liste;
+  }
+
+  function commencerGlisse() {
+    const g = geste;
+    g.glisse = true;
+    selection = null;
+    document.querySelectorAll('.carte.choisie').forEach(el => el.classList.remove('choisie'));
+    const base = g.cartesEl[0].getBoundingClientRect();
+    const f = document.createElement('div');
+    f.className = 'fantome';
+    f.style.left = base.left + 'px';
+    f.style.top = base.top + 'px';
+    for (const el of g.cartesEl) {
+      const r = el.getBoundingClientRect();
+      const c = el.cloneNode(true);
+      c.classList.remove('indice', 'refus', 'choisie');
+      c.style.top = (r.top - base.top) + 'px';
+      c.style.left = '0px';
+      c.style.zIndex = '';
+      f.appendChild(c);
+      el.classList.add('traine');
+    }
+    document.body.appendChild(f);
+    g.fantome = f;
+    g.cibles = ciblesLegales(g.source);
+    g.cibles.forEach(c => c.el && c.el.classList.add('cible-possible'));
+  }
+
+  /** Cible dont la zone recouvre le plus la carte déplacée (tolérant sur mobile). */
+  function meilleureCible(g, x, y) {
+    const r = g.fantome.firstChild.getBoundingClientRect();
+    let meilleure = null, aire = 0;
+    for (const c of g.cibles) {
+      if (!c.el) continue;
+      const z = c.el.getBoundingClientRect();
+      const bas = c.vers.zone === 'col' ? Math.max(z.bottom, z.top + dispo.h) : z.bottom;
+      const w = Math.min(r.right, z.right) - Math.max(r.left, z.left);
+      const h = Math.min(r.bottom, bas) - Math.max(r.top, z.top);
+      const a = w > 0 && h > 0 ? w * h : 0;
+      if (a > aire) { aire = a; meilleure = c; }
+    }
+    if (meilleure) return meilleure;
+    // Sinon : ce qu'il y a sous le doigt
+    const sous = document.elementFromPoint(x, y);
+    const z = sous && sous.closest('[data-zone]');
+    if (!z) return null;
+    return g.cibles.find(c => c.el === z) || null;
+  }
+
+  function finirGlisse(g) {
+    document.querySelectorAll('.cible-possible, .cible').forEach(el => el.classList.remove('cible-possible', 'cible'));
+    if (g.fantome) g.fantome.remove();
+    document.querySelectorAll('.traine').forEach(el => el.classList.remove('traine'));
+  }
+
+  function pointeurBas(e) {
+    if (!etat || M.estTerminee(etat) || geste || e.button > 0) return;
+    if (e.target.closest('.barre')) return;
+    const source = sourceSous(e.target);
+    geste = { id: e.pointerId, x0: e.clientX, y0: e.clientY, source, glisse: false, cible: e.target };
+    if (source) {
+      geste.cartesEl = elementsSource(source);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* ignoré */ }
+    }
+  }
+
+  function pointeurBouge(e) {
+    const g = geste;
+    if (!g || e.pointerId !== g.id || !g.source) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (!g.glisse) {
+      if (Math.hypot(dx, dy) < SEUIL_GLISSE) return;
+      commencerGlisse();
+    }
+    e.preventDefault();
+    g.fantome.style.transform = `translate(${dx}px, ${dy}px)`;
+    const c = meilleureCible(g, e.clientX, e.clientY);
+    g.cibles.forEach(x => x.el && x.el.classList.toggle('cible', x === c));
+  }
+
+  function pointeurHaut(e) {
+    const g = geste;
+    if (!g || e.pointerId !== g.id) return;
+    geste = null;
+    if (!g.glisse) { toucher({ target: g.cible }); return; }
+    const c = meilleureCible(g, e.clientX, e.clientY);
+    if (c && jouer({ type: 'deplacer', de: g.source, vers: c.vers })) { finirGlisse(g); return; }
+    // Retour à la case départ
+    const f = g.fantome;
+    f.style.transition = 'transform .18s ease';
+    f.style.transform = 'translate(0, 0)';
+    setTimeout(() => { finirGlisse(g); }, 190);
+    if (c === null && g.cibles.length === 0) vibrer(15);
+  }
+
+  function pointeurAnnule(e) {
+    if (!geste || e.pointerId !== geste.id) return;
+    if (geste.glisse) finirGlisse(geste);
+    geste = null;
   }
 
   function indice() {
@@ -442,10 +589,11 @@
   $('#btn-regles').addEventListener('click', () => $('#dlg-regles').showModal());
   $('#btn-stats').addEventListener('click', ouvrirStats);
 
-  $('#ecran-jeu').addEventListener('click', (e) => {
-    if (e.target.closest('.barre')) return;
-    toucher(e);
-  });
+  const zoneJeu = $('#ecran-jeu');
+  zoneJeu.addEventListener('pointerdown', pointeurBas);
+  zoneJeu.addEventListener('pointermove', pointeurBouge);
+  zoneJeu.addEventListener('pointerup', pointeurHaut);
+  zoneJeu.addEventListener('pointercancel', pointeurAnnule);
   $('#btn-annuler').addEventListener('click', annuler);
   $('#btn-indice').addEventListener('click', indice);
   $('#btn-menu').addEventListener('click', () => $('#dlg-menu').showModal());
