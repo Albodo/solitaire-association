@@ -29,6 +29,14 @@
     { difficulte: 'moyen', themes: BANQUES.map(t => t.id) },
     stock.lire('reglages', {})
   );
+  // Thèmes ajoutés depuis la dernière visite : cochés d'office.
+  const idsThemes = BANQUES.map(t => t.id);
+  const connus = reglages.connus || ['politique', 'culture-pop', 'science', 'techno', 'cinema', 'geographie', 'jurons', 'villes', 'musique'];
+  idsThemes.filter(id => !connus.includes(id) && !reglages.themes.includes(id)).forEach(id => reglages.themes.push(id));
+  reglages.themes = reglages.themes.filter(id => idsThemes.includes(id));
+  reglages.connus = idsThemes;
+  stock.ecrire('reglages', reglages);
+
   const stats = Object.assign(
     { jouees: 0, gagnees: 0, serie: 0, meilleureSerie: 0, etoiles: 0, defis: {} },
     stock.lire('stats', {})

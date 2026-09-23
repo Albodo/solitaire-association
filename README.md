@@ -16,10 +16,11 @@ de manquer de coups.
 - **Partie libre** : Facile / Moyen / Difficile, et choix des thèmes.
 - Règles complètes : [docs/REGLES.md](docs/REGLES.md).
 
-## Thèmes inclus (v0.1)
+## Thèmes inclus (v0.3)
 
-Politique · Culture pop · Science · Technologie · Cinéma · Géographie ·
-Jurons québécois · Villes du Québec · Musique franco — 52 catégories, 450 mots.
+Politique · Culture pop · Science · Technologie · Cinéma · Géographie d'ici ·
+Géographie du monde · Jurons québécois · Villes du Québec · Musique franco —
+71 catégories, 669 mots.
 
 Pour ajouter des mots : [docs/BANQUES.md](docs/BANQUES.md).
 
