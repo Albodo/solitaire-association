@@ -1,0 +1,13 @@
+{
+  "name": "Solitaire Association",
+  "short_name": "Association",
+  "description": "Solitaire d'associations de mots, 100 % québécois, sans pub.",
+  "lang": "fr-CA",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef1f6",
+  "theme_color": "#1a3f7a",
+  "icons": [{ "src": "img/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

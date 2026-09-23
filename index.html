@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#1a3f7a">
+  <meta name="description" content="Solitaire d'associations de mots, 100 % québécois, sans pub.">
+  <title>Solitaire Association</title>
+  <link rel="icon" href="img/icone.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ===== Accueil ===== -->
+  <section id="ecran-accueil" class="ecran actif" aria-labelledby="titre-jeu">
+    <div class="accueil">
+      <div class="logo" aria-hidden="true">
+        <span class="mini-carte">Tuque</span>
+        <span class="mini-carte cat">Vêtements</span>
+        <span class="mini-carte">Mitaines</span>
+      </div>
+      <h1 id="titre-jeu">Solitaire<br><span>Association</span></h1>
+      <p class="sous-titre">Des mots d'ici à regrouper. Pas de pub, pas de niaisage.</p>
+
+      <button class="bouton principal" id="btn-defi">Défi du jour<small id="defi-date"></small></button>
+      <button class="bouton" id="btn-continuer" hidden>Continuer la partie</button>
+
+      <div class="groupe">
+        <span class="etiquette">Nouvelle partie</span>
+        <div class="choix-diff" role="radiogroup" aria-label="Difficulté">
+          <button class="bouton puce" data-diff="facile" role="radio">Facile</button>
+          <button class="bouton puce" data-diff="moyen" role="radio">Moyen</button>
+          <button class="bouton puce" data-diff="difficile" role="radio">Difficile</button>
+        </div>
+        <button class="bouton" id="btn-nouvelle">Jouer</button>
+      </div>
+
+      <div class="liens">
+        <button class="lien" id="btn-themes">Thèmes</button>
+        <button class="lien" id="btn-regles">Comment jouer</button>
+        <button class="lien" id="btn-stats">Statistiques</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Jeu ===== -->
+  <section id="ecran-jeu" class="ecran" aria-label="Partie">
+    <header class="barre">
+      <button class="icone" id="btn-menu" aria-label="Menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="compteur" aria-live="polite">
+        <strong id="coups-restants">0</strong>
+        <span>coups</span>
+      </div>
+      <div class="progres" id="progres" aria-label="Catégories complétées"></div>
+      <button class="icone" id="btn-indice" aria-label="Indice">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+      </button>
+      <button class="icone" id="btn-annuler" aria-label="Annuler le dernier coup">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      </button>
+    </header>
+
+    <div class="plateau" id="plateau">
+      <div class="fondations" id="fondations"></div>
+      <div class="tableau" id="tableau"></div>
+    </div>
+
+    <footer class="talon">
+      <div class="pile pioche" id="pioche" role="button" aria-label="Piocher"></div>
+      <div class="pile defausse" id="defausse"></div>
+      <p class="aide" id="aide">Touche une carte, puis sa destination.</p>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <!-- ===== Fenêtres ===== -->
+  <dialog id="dlg-fin" class="fenetre">
+    <h2 id="fin-titre"></h2>
+    <p class="etoiles" id="fin-etoiles" aria-hidden="true"></p>
+    <p id="fin-texte"></p>
+    <ul class="liste-cats" id="fin-cats"></ul>
+    <div class="actions">
+      <button class="bouton" id="fin-partager" hidden>Copier le résultat</button>
+      <button class="bouton principal" id="fin-rejouer">Nouvelle partie</button>
+      <button class="bouton" id="fin-menu">Menu</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-regles" class="fenetre">
+    <h2>Comment jouer</h2>
+    <ol class="regles">
+      <li>Chaque partie cache des <b>catégories</b> (cartes bleues) et leurs <b>mots</b>.</li>
+      <li>Pose une carte-catégorie dans une <b>case du haut</b> vide pour l'ouvrir.</li>
+      <li>Envoie ensuite les mots qui vont avec. Quand tous les mots y sont, la catégorie disparaît et libère la case.</li>
+      <li>Dans les colonnes, tu peux empiler des mots <b>de la même catégorie</b>, dans n'importe quel ordre. Une colonne vide accepte n'importe quelle carte.</li>
+      <li>Touche la <b>pioche</b> en bas pour tirer une carte. Quand elle est vide, touche-la pour la remélanger.</li>
+      <li>Chaque action coûte <b>un coup</b>. Complète toutes les catégories avant d'en manquer!</li>
+    </ol>
+    <p class="petit">Astuce : touche deux fois la même carte pour l'envoyer automatiquement au meilleur endroit.</p>
+    <div class="actions"><button class="bouton principal" data-fermer>Compris</button></div>
+  </dialog>
+
+  <dialog id="dlg-themes" class="fenetre">
+    <h2>Thèmes</h2>
+    <p class="petit">Choisis les thèmes pour tes parties libres. Le défi du jour utilise tous les thèmes.</p>
+    <div class="themes" id="liste-themes"></div>
+    <div class="actions">
+      <button class="bouton" id="themes-tous">Tout cocher</button>
+      <button class="bouton principal" data-fermer>OK</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-stats" class="fenetre">
+    <h2>Statistiques</h2>
+    <div class="stats" id="stats"></div>
+    <div class="actions"><button class="bouton principal" data-fermer>Fermer</button></div>
+  </dialog>
+
+  <dialog id="dlg-menu" class="fenetre">
+    <h2>Pause</h2>
+    <div class="actions colonne">
+      <button class="bouton principal" data-fermer>Reprendre</button>
+      <button class="bouton" id="menu-recommencer">Recommencer cette donne</button>
+      <button class="bouton" id="menu-regles">Comment jouer</button>
+      <button class="bouton" id="menu-accueil">Retour à l'accueil</button>
+    </div>
+  </dialog>
+
+  <script src="data/banques.js"></script>
+  <script src="js/moteur.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "solitaire-association",
+  "version": "0.1.0",
+  "description": "Solitaire d'associations de mots québécois, conçu pour mobile, sans pub.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/test-moteur.js && node outils/valider-banques.js",
+    "serve": "npx --yes serve ."
+  }
+}
